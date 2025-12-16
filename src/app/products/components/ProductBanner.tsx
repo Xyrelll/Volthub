@@ -4,14 +4,26 @@ import { useRef, useEffect } from "react";
 import Image from "next/image";
 import LayoutContainer from "@/components/layout/LayoutContainer";
 import { RiArrowRightSLine, RiHome2Line } from "react-icons/ri";
-import { ProductCategory, categoryBanner, categories } from "./productData";
+import { ProductCategory } from "./productData";
+
+interface Category {
+  id: ProductCategory;
+  label: string;
+}
 
 interface ProductBannerProps {
   activeCategory: ProductCategory;
+  categoryBanner: Record<string, { title: string; description: string; image: string; video?: string }>;
+  categories: Category[];
 }
 
-export default function ProductBanner({ activeCategory }: ProductBannerProps) {
-  const banner = categoryBanner[activeCategory];
+export default function ProductBanner({ activeCategory, categoryBanner, categories }: ProductBannerProps) {
+  const banner = categoryBanner[activeCategory] || categoryBanner["all"] || { 
+    title: "Products", 
+    description: "", 
+    image: "/HomeBanner/banner3.jpg", // Default fallback image
+    video: undefined 
+  };
   const videoRef = useRef<HTMLVideoElement>(null);
   const categoryLabel = categories.find((c) => c.id === activeCategory)?.label || "";
 
@@ -20,6 +32,11 @@ export default function ProductBanner({ activeCategory }: ProductBannerProps) {
       videoRef.current.playbackRate = 0.5; // Set to 25% speed (super slow motion)
     }
   }, [banner.video, activeCategory]);
+
+  // Don't render image if no image or video
+  if (!banner.image && !banner.video) {
+    return null;
+  }
 
   return (
     <section className="relative overflow-hidden border-b border-slate-100 min-h-[200px] sm:min-h-[250px] md:min-h-[320px] w-full">
@@ -34,7 +51,7 @@ export default function ProductBanner({ activeCategory }: ProductBannerProps) {
           {...(activeCategory === "smart-home" && { loop: true })}
           className="w-full h-full md:h-[550px] object-cover"
         />
-      ) : (
+      ) : banner.image ? (
         <Image
           src={banner.image}
           alt={banner.title}
@@ -42,7 +59,7 @@ export default function ProductBanner({ activeCategory }: ProductBannerProps) {
           height={400}
           className="w-full h-full md:h-[550px] object-cover"
         />
-      )}
+      ) : null}
       <div className="absolute inset-0">
         <LayoutContainer className="h-full flex flex-col justify-center items-center text-center text-white pt-20 md:pt-30">
           <div className="max-w-4xl w-full border-b border-white/10 pb-6 md:pb-10 mb-6 md:mb-10 space-y-4 md:space-y-6">

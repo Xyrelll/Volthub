@@ -1,11 +1,18 @@
-import { Product, ProductCategory, categories, products as allProducts } from "./productData";
+import { Product, ProductCategory } from "./productData";
 import ProductCard from "./ProductCard";
+
+interface Category {
+  id: ProductCategory;
+  label: string;
+}
 
 interface ProductGridProps {
   products: Product[];
   activeCategory: ProductCategory;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
+  categories: Category[];
+  totalProducts: number;
 }
 
 export default function ProductGrid({
@@ -13,6 +20,8 @@ export default function ProductGrid({
   activeCategory,
   searchQuery,
   onSearchQueryChange,
+  categories,
+  totalProducts,
 }: ProductGridProps) {
   return (
     <div className="space-y-4 md:space-y-6 flex-1 w-full md:w-auto">
@@ -41,7 +50,7 @@ export default function ProductGrid({
             </span>
           </div>
           <p className="text-xs md:text-sm text-slate-500 md:text-right">
-            Showing {products.length} of {allProducts.length} products
+            Showing {products.length} of {totalProducts} products
           </p>
         </div>
       </div>

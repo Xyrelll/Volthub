@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import LayoutContainer from "@/components/layout/LayoutContainer";
-import ProductDetail from "../components/ProductDetail";
-import { getProductById } from "../components/productData";
+import { createServerClient } from "@/lib/supabase";
+import type { Product } from "../components/productData";
+import ProductDetailClient from "./ProductDetailClient";
 
 type ProductPageProps = {
   params: Promise<{
@@ -10,11 +9,46 @@ type ProductPageProps = {
   }>;
 };
 
+async function getProductForMetadata(id: string): Promise<Product | null> {
+  try {
+    const supabase = createServerClient();
+    const { data: product, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !product) {
+      return null;
+    }
+
+    return {
+      id: product.id,
+      name: product.name,
+      subtitle: product.subtitle || "",
+      category: product.category as Product["category"],
+      tag: product.tag || undefined,
+      image: product.image,
+      images: Array.isArray(product.images) ? product.images : [],
+      price: product.price || undefined,
+      description: product.description || undefined,
+      variations: Array.isArray(product.variations) ? product.variations : [],
+      specifications: Array.isArray(product.specifications)
+        ? product.specifications
+        : [],
+      features: Array.isArray(product.features) ? product.features : [],
+    };
+  } catch (error) {
+    console.error("Error fetching product for metadata:", error);
+    return null;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getProductForMetadata(id);
 
   if (!product) {
     return {
@@ -31,21 +65,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-  const { id } = await params;
-  const product = getProductById(id);
-
-  if (!product) {
-    notFound();
-  }
-
-  return (
-    <main className="bg-slate-50 min-h-screen pt-20 md:pt-28 pb-12 md:pb-20 flex  items-center justify-center">
-      <LayoutContainer>
-        <ProductDetail product={product} />
-      </LayoutContainer>
-    </main>
-  );
+export default function ProductPage() {
+  // Use client component to fetch from API route (visible in Network tab)
+  return <ProductDetailClient />;
 }
 
 

@@ -29,25 +29,38 @@ import {
   RiArrowLeftSLine,
   RiArrowRightSLine
 } from "react-icons/ri";
-import { Product, categories, productDetails, products } from "./productData";
+import { Product } from "./productData";
 
 interface ProductDetailProps {
   product: Product;
 }
 
 export default function ProductDetail({ product }: ProductDetailProps) {
-  const details = productDetails[product.id];
-  const categoryLabel = categories.find((c) => c.id === product.category)?.label;
+  // Use product data directly from database (variations, specifications, features are already included)
+  const details = {
+    variations: product.variations || [],
+    specifications: product.specifications || [],
+    features: product.features || [],
+    description: product.description,
+  };
+  
+  const categoryLabelMap: Record<string, string> = {
+    "all": "All Products",
+    "ev-charging": "EV Charging Station",
+    "solar-street": "Solar Street Lights",
+    "smart-home": "Smart Home IPS",
+    "cabinet": "Power Supplies",
+  };
+  const categoryLabel = categoryLabelMap[product.category] || product.category;
   const isEVProduct = product.category === "ev-charging";
   const isSmartHomeProduct = product.category === "smart-home";
   const isCabinetProduct = product.category === "cabinet";
   // Container category merged into cabinet; detect by ID for container-specific UI
   const isContainerProduct = product.id === "container-con1";
   
-  // Get related products from the same category, excluding current product
-  const relatedProducts = products.filter(
-    (p) => p.category === product.category && p.id !== product.id
-  );
+  // Related products will be fetched separately if needed
+  // For now, we'll keep it empty or fetch from API later
+  const relatedProducts: Product[] = [];
   
   // Variant-based pricing (for products that define prices on variations)
   const pricedVariations =

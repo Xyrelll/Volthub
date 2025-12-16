@@ -1,16 +1,23 @@
 "use client";
 
 import { RiArrowRightSLine } from "react-icons/ri";
-import { ProductCategory, categories } from "./productData";
+import { ProductCategory } from "./productData";
+
+interface Category {
+  id: ProductCategory;
+  label: string;
+}
 
 interface ProductSidebarProps {
   activeCategory: ProductCategory;
   onCategoryChange: (category: ProductCategory) => void;
+  categories: Category[];
 }
 
 export default function ProductSidebar({
   activeCategory,
   onCategoryChange,
+  categories,
 }: ProductSidebarProps) {
   return (
     <>

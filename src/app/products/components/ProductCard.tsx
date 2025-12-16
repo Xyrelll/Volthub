@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { RiArrowRightSLine, RiBatteryChargeLine, RiChargingPile2Line, RiHomeGearLine, RiSunLine } from "react-icons/ri";
-import { Product, categories } from "./productData";
+import { Product } from "./productData";
 
 interface ProductCardProps {
   product: Product;
@@ -42,7 +42,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="uppercase tracking-[0.16em] truncate">
             {product.category === "all"
               ? "All Products"
-              : categories.find((c) => c.id === product.category)?.label}
+              : product.category === "ev-charging"
+              ? "EV Charging Station"
+              : product.category === "solar-street"
+              ? "Solar Street Lights"
+              : product.category === "smart-home"
+              ? "Smart Home IPS"
+              : product.category === "cabinet"
+              ? "Power Supplies"
+              : product.category}
           </span>
         </div>
 

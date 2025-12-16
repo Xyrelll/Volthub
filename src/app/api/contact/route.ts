@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - nodemailer types are not included in this project
 import nodemailer from "nodemailer";
+import { createServerClient } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
     const { firstName, lastName, email, phone, region, province, city, interest, details } =
       await request.json();
+
+    const supabase = createServerClient();
 
     const interestLabels: Record<string, string> = {
       // Products
@@ -58,6 +61,29 @@ export async function POST(request: Request) {
 
     const body = bodyLines.join("\n");
 
+    // Save to database first
+    const { data: submission, error: dbError } = await supabase
+      .from("contact_submissions")
+      .insert({
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        phone: phone || null,
+        region: region || null,
+        province: province || null,
+        city: city || null,
+        interest: interest,
+        details: details || null,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("Error saving contact submission to database:", dbError);
+      // Continue with email even if DB save fails
+    }
+
+    // Send email
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
@@ -68,17 +94,33 @@ export async function POST(request: Request) {
       },
     });
 
-    await transporter.sendMail({
-      // Gmail requires the authenticated account as the actual sender
-      from: `"${firstName} ${lastName} via VoltHub" <${
-        process.env.SMTP_FROM || process.env.SMTP_USER
-      }>`,
-      to: "admin-help@volthub-ev.com",
-      subject,
-      text: body,
-      // This makes replies go directly to the email entered in the form
-      replyTo: email || undefined,
-    });
+    try {
+      await transporter.sendMail({
+        // Gmail requires the authenticated account as the actual sender
+        from: `"${firstName} ${lastName} via VoltHub" <${
+          process.env.SMTP_FROM || process.env.SMTP_USER
+        }>`,
+        to: "admin-help@volthub-ev.com",
+        subject,
+        text: body,
+        // This makes replies go directly to the email entered in the form
+        replyTo: email || undefined,
+      });
+
+      // Update database to mark email as sent
+      if (submission?.id) {
+        await supabase
+          .from("contact_submissions")
+          .update({
+            email_sent: true,
+            email_sent_at: new Date().toISOString(),
+          })
+          .eq("id", submission.id);
+      }
+    } catch (emailError) {
+      console.error("Error sending email:", emailError);
+      // Don't fail the request if email fails, submission is already saved
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

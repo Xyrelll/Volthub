@@ -1,5 +1,5 @@
 // Type definitions only - no hardcoded data
-// All data comes from Supabase via API routes
+// All data comes from Supabase via API
 
 export type ProductCategory =
   | "all"
@@ -34,8 +34,3 @@ export type Product = {
   features?: string[];
 };
 
-// All hardcoded data has been removed - fetch from API instead:
-// - Products: GET /api/products
-// - Categories: Included in /api/products response
-// - Category Banners: Included in /api/products response  
-// - Product Details: GET /api/products/[id]
