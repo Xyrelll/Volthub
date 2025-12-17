@@ -7,7 +7,9 @@ export async function GET(request: Request) {
     const supabase = createServerClient();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") as ProductCategory | null;
-    const search = searchParams.get("search")?.toLowerCase() || "";
+    const searchParam = searchParams.get("search");
+    const search = searchParam ? searchParam.toLowerCase().trim() : "";
+
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
 
@@ -19,14 +21,7 @@ export async function GET(request: Request) {
       query = query.eq("category", category);
     }
 
-    // Filter by search query if provided (using PostgreSQL full-text search)
-    if (search) {
-      query = query.or(
-        `name.ilike.%${search}%,subtitle.ilike.%${search}%,description.ilike.%${search}%,tag.ilike.%${search}%`
-      );
-    }
-
-    // Apply pagination
+    // Apply pagination first (before search filtering)
     const limitNum = limit ? parseInt(limit, 10) : undefined;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
@@ -46,6 +41,28 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
+
+    // Filter by search query after fetching
+    // This ensures we only return products that match the search
+    let filteredProducts = products || [];
+    
+    
+    // Apply search filter if search term is provided
+    if (search && search.length > 0) {
+      const searchLower = search.toLowerCase();
+      const beforeCount = filteredProducts.length;
+      
+
+      
+      filteredProducts = filteredProducts.filter((product: any) => {
+        const name = (product.name || "").toLowerCase();
+        const matches = 
+          name.includes(searchLower);
+        
+        return matches;
+      });
+
+    } 
 
     // Get all categories from database (or use static definition as fallback)
     const categories = [
@@ -80,7 +97,7 @@ export async function GET(request: Request) {
     }
 
     // Transform products to match expected format (handle JSONB fields)
-    const transformedProducts = (products || []).map((product) => ({
+    const transformedProducts = filteredProducts.map((product: any) => ({
       id: product.id,
       name: product.name,
       subtitle: product.subtitle,
@@ -101,7 +118,7 @@ export async function GET(request: Request) {
       success: true,
       data: {
         products: transformedProducts,
-        total: count || transformedProducts.length,
+        total: search ? filteredProducts.length : (count || transformedProducts.length),
         categories,
         categoryBanner,
         categoryInfo,

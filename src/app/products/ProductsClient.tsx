@@ -32,11 +32,13 @@ export default function ProductsClient() {
       : "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryBanner, setCategoryBanner] = useState<Record<string, any>>({});
   const [totalProducts, setTotalProducts] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (
@@ -54,20 +56,42 @@ export default function ProductsClient() {
     }
   }, [categoryParam]);
 
+  // Debounce search query to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Fetch products, categories, and banners from API
+  // Search is handled by the API, not client-side
   useEffect(() => {
     async function fetchProducts() {
-      setLoading(true);
+      // Only show full loading spinner on initial load
+      // For subsequent searches, show a subtle indicator
+      const isInitialLoad = products.length === 0 && !searchQuery;
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        // User is searching, show subtle searching indicator
+        setSearching(true);
+      }
+
       try {
         const categoryParam = activeCategory !== "all" ? activeCategory : null;
         const params = new URLSearchParams();
         if (categoryParam) params.set("category", categoryParam);
-        if (searchQuery.trim()) params.set("search", searchQuery.trim());
+        if (debouncedSearchQuery.trim()) {
+          params.set("search", debouncedSearchQuery.trim());
+        }
 
         const response = await fetch(`/api/products?${params.toString()}`);
         const result = await response.json();
 
         if (result.success && result.data) {
+          // API already filters products based on search query
           setProducts(result.data.products || []);
           setCategories(result.data.categories || []);
           setCategoryBanner(result.data.categoryBanner || {});
@@ -77,28 +101,12 @@ export default function ProductsClient() {
         console.error("Error fetching products:", error);
       } finally {
         setLoading(false);
+        setSearching(false);
       }
     }
 
     fetchProducts();
-  }, [activeCategory, searchQuery]);
-
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-
-  const filteredProducts = products
-    .filter((p) => {
-      if (!normalizedQuery) return true;
-      const haystack = [
-        p.name,
-        p.subtitle,
-        p.tag,
-        p.description,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(normalizedQuery);
-    });
+  }, [activeCategory, debouncedSearchQuery]);
 
   const showBackToTop = activeCategory === "all";
 
@@ -127,14 +135,24 @@ export default function ProductsClient() {
                 </div>
               </div>
             ) : (
-              <ProductGrid
-                products={filteredProducts}
-                activeCategory={activeCategory}
-                searchQuery={searchQuery}
-                onSearchQueryChange={setSearchQuery}
-                categories={categories}
-                totalProducts={totalProducts}
-              />
+              <div className="flex-1 relative">
+                {searching && (
+                  <div className="absolute top-0 right-0 z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-xs text-slate-600">Searching...</span>
+                    </div>
+                  </div>
+                )}
+                <ProductGrid
+                  products={products}
+                  activeCategory={activeCategory}
+                  searchQuery={searchQuery}
+                  onSearchQueryChange={setSearchQuery}
+                  categories={categories}
+                  totalProducts={totalProducts}
+                />
+              </div>
             )}
           </div>
         </LayoutContainer>
