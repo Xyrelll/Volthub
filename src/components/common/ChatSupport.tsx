@@ -202,10 +202,15 @@ const ChatSupport = () => {
 
   const handleContactRedirect = () => {
     if (lastUserMessage) {
-      const contactLink = generateContactLink(lastUserMessage, currentProductId);
+      const contactLink = generateContactLink(lastUserMessage, currentProductId, sessionId);
       window.location.href = contactLink;
     } else {
-      window.location.href = '/contact';
+      // Include sessionId in URL even if no message
+      const params = new URLSearchParams();
+      if (sessionId) {
+        params.set('chatSessionId', sessionId);
+      }
+      window.location.href = `/contact?${params.toString()}`;
     }
     setIsOpen(false);
   };

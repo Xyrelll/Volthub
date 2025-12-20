@@ -6,7 +6,7 @@ import { createServerClient } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
-    const { firstName, lastName, email, phone, region, province, city, interest, details } =
+    const { firstName, lastName, email, phone, region, province, city, interest, details, chatSessionId } =
       await request.json();
 
     const supabase = createServerClient();
@@ -74,6 +74,7 @@ export async function POST(request: Request) {
         city: city || null,
         interest: interest,
         details: details || null,
+        chat_session_id: chatSessionId || null,
       })
       .select()
       .single();
@@ -116,6 +117,27 @@ export async function POST(request: Request) {
             email_sent_at: new Date().toISOString(),
           })
           .eq("id", submission.id);
+      }
+
+      // Update chat session with user's name if chatSessionId is provided
+      if (chatSessionId) {
+        await supabase
+          .from("chat_sessions")
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+          })
+          .eq("session_id", chatSessionId);
+
+        // Also update all messages in this session with the name
+        await supabase
+          .from("chat_messages")
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+          })
+          .eq("session_id", chatSessionId)
+          .is("first_name", null); // Only update messages that don't already have a name
       }
     } catch (emailError) {
       console.error("Error sending email:", emailError);

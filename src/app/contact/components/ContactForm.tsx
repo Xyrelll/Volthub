@@ -52,6 +52,7 @@ export default function ContactForm() {
     const productName = searchParams.get("productName");
     const quantity = searchParams.get("quantity");
     const price = searchParams.get("price");
+    // const chatSessionId = searchParams.get("chatSessionId");
 
     // If interest is directly provided, use it
     if (interest) {
@@ -372,12 +373,19 @@ export default function ContactForm() {
     try {
       setIsSubmitting(true);
 
+      // Get chat session ID from URL params or localStorage
+      const chatSessionId = searchParams.get("chatSessionId") || 
+        (typeof window !== "undefined" ? localStorage.getItem("volthub_chat_session_id") : null);
+
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formState),
+        body: JSON.stringify({
+          ...formState,
+          chatSessionId: chatSessionId,
+        }),
       });
 
       const result = await response.json();
