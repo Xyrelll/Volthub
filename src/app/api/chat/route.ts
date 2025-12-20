@@ -362,7 +362,7 @@ export async function POST(request: Request) {
     const supabase = createServerClient();
 
     // Generate session ID if not provided (fallback)
-    let chatSessionId = sessionId || `chat_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    const chatSessionId = sessionId || `chat_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
     // Ensure session exists in database (create or update)
     const { data: existingSession } = await supabase
