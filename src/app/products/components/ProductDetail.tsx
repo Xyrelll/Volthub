@@ -6,20 +6,14 @@ import Link from "next/link";
 import { 
   RiArrowLeftLine, 
   RiCheckLine,
-  RiFlashlightLine,
-  RiPlugLine,
   RiSettings3Line,
   RiMapPinLine,
-  RiBatteryChargeLine,
   RiFileList3Line,
   RiHeartLine,
   RiHeartFill,
   RiChat3Line,
   RiThumbUpLine,
   RiStarLine,
-  RiRulerLine,
-  RiSunLine,
-  RiShieldCheckLine,
   RiAwardLine,
   RiDownloadLine,
   RiCalendarLine,
@@ -29,7 +23,9 @@ import {
   RiArrowLeftSLine,
   RiArrowRightSLine
 } from "react-icons/ri";
-import { Product } from "./productData";
+import { Product, categories } from "./productData";
+import ProductDetailEV from "./ProductDetailEV";
+import ProductDetailB2B from "./ProductDetailB2B";
 
 interface ProductDetailProps {
   product: Product;
@@ -37,22 +33,19 @@ interface ProductDetailProps {
 
 export default function ProductDetail({ product }: ProductDetailProps) {
   // Use product data directly from database (variations, specifications, features are already included)
+  // Fallback to empty arrays if not provided
   const details = {
     variations: product.variations || [],
     specifications: product.specifications || [],
     features: product.features || [],
-    description: product.description,
+    description: product.description || "",
   };
   
-  const categoryLabelMap: Record<string, string> = {
-    "all": "All Products",
-    "ev-charging": "EV Charging Station",
-    "solar-street": "Solar Street Lights",
-    "smart-home": "Smart Home IPS",
-    "cabinet": "Power Supplies",
-  };
-  const categoryLabel = categoryLabelMap[product.category] || product.category;
-  const isEVProduct = product.category === "ev-charging";
+  const categoryLabel = categories.find((c) => c.id === product.category)?.label || product.category;
+  
+  // Determine layout: use product.layout if specified, otherwise use category-based default
+  const productLayout = product.layout || "auto";
+  const isEVProduct = productLayout === "ev" || (productLayout === "auto" && product.category === "ev-charging");
   const isSmartHomeProduct = product.category === "smart-home";
   const isCabinetProduct = product.category === "cabinet";
   // Container category merged into cabinet; detect by ID for container-specific UI
@@ -158,7 +151,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     return baseImages;
   }, [product.images, product.image, product.id, selectedVariant?.image]);
   const [selectedImage, setSelectedImage] = useState(() => allImages[0] || product.image);
-  const [activeTab, setActiveTab] = useState<"overview" | "specifications" | "reviews" | "projects">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "specifications" | "reviews" | "projects" | "documentation">("overview");
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -179,24 +172,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     }
   }, [selectedVariant, allImages]);
   
-  // Parse variant info from description (e.g., "LED: 50W | Size: 1319×460×60mm | Battery: 12.8V 45Ah | Solar Panel: 100W | Pole Height: 8m")
-  const parseVariantInfo = (desc?: string) => {
-    if (!desc) return { led: null, size: null, battery: null, solar: null };
-    
-    const ledMatch = desc.match(/LED:\s*(\d+W)/i);
-    const sizeMatch = desc.match(/Size:\s*([^|]+)/i);
-    const batteryMatch = desc.match(/Battery:\s*([\d.]+V)/i); // Extract voltage only (e.g., 12.8V)
-    const solarMatch = desc.match(/Solar Panel:\s*(\d+W)/i);
-    
-    return {
-      led: ledMatch ? ledMatch[1] : null,
-      size: sizeMatch ? sizeMatch[1].trim() : null,
-      battery: batteryMatch ? batteryMatch[1] : null,
-      solar: solarMatch ? solarMatch[1] : null,
-    };
-  };
-  
-  const variantInfo = parseVariantInfo(selectedVariant?.description);
   
   // Interactive stats state
   const [likes, setLikes] = useState(1234);
@@ -241,7 +216,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
 
   return (
-    <div className="space-y-4 md:space-y-8 w-full md:w-3/4 md:mx-auto ">
+    <div className="space-y-4 md:space-y-8 w-full md:w-3/4 md:mx-auto pb-24 lg:pb-8">
       {/* Back Button */}
       <Link
         href="/products"
@@ -251,391 +226,82 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <span>Back to Products</span>
       </Link>
 
-      {/* Top Section - Row 1: Image and Image Selector */}
-      <div className="flex flex-col lg:flex-row gap-3 md:gap-4 lg:gap-6 items-start">
-        {/* Main Product Image - First on mobile, second on desktop */}
-        <button
-          onClick={() => openImageModal(allImages.findIndex(img => img === selectedImage))}
-          className="relative aspect-square bg-white lg:aspect-[3/2] w-full lg:w-[80%] order-1 lg:order-2 rounded-xl md:rounded-2xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 border-2 border-slate-200 shadow-lg cursor-pointer hover:shadow-xl transition-shadow"
-          aria-label="Click to view larger image"
-        >
-          <Image
-            src={selectedImage}
-            alt={product.name}
-            fill
-            className="object-contain transition-opacity duration-300 p-3 md:p-4 lg:p-6"
-            priority
-          />
-          {allImages.length > 1 && (
-            <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-white/90 backdrop-blur-sm px-2 py-1 md:px-3 md:py-1.5 rounded-full text-xs font-semibold text-slate-700 shadow-md">
-              {allImages.findIndex(img => img === selectedImage) + 1} / {allImages.length}
-            </div>
-          )}
-          {/* Mobile-only overlay hint */}
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/5 md:hover:bg-black/0 transition-colors flex items-center justify-center md:hidden">
-            <span className="text-xs text-slate-600 bg-white/90 px-3 py-1.5 rounded-full font-medium shadow-md opacity-0 hover:opacity-100 transition-opacity">
-              Tap to enlarge
-            </span>
-          </div>
-        </button>
+      {/* Conditional Layout: Consumer (EV) vs B2B (Other Products) */}
+      {isEVProduct ? (
+        <ProductDetailEV
+          product={product}
+          details={details}
+          categoryLabel={categoryLabel}
+          displayProductName={displayProductName}
+          currentPrice={currentPrice}
+          selectedVariantIndex={selectedVariantIndex}
+          setSelectedVariantIndex={setSelectedVariantIndex}
+          pricedVariations={pricedVariations}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          selectedImage={selectedImage}
+          setSelectedImage={setSelectedImage}
+          allImages={allImages}
+          openImageModal={openImageModal}
+          averageRating={averageRating}
+          totalRatings={totalRatings}
+        />
+      ) : (
+        <ProductDetailB2B
+          product={product}
+          details={details}
+          categoryLabel={categoryLabel}
+          displayProductName={displayProductName}
+          currentPrice={currentPrice}
+          selectedVariantIndex={selectedVariantIndex}
+          setSelectedVariantIndex={setSelectedVariantIndex}
+          pricedVariations={pricedVariations}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          selectedImage={selectedImage}
+          setSelectedImage={setSelectedImage}
+          allImages={allImages}
+          openImageModal={openImageModal}
+          isCabinetProduct={isCabinetProduct}
+          isContainerProduct={isContainerProduct}
+        />
+      )}
 
-        {/* Image Selection Thumbnails - Below image on mobile, left side on desktop */}
-        {allImages.length > 1 && (
-          <div className="w-full lg:w-auto order-2 lg:order-1  ">
-            <div className="flex lg:flex-col gap-2  overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto px-6 py-3 lg:px-2 lg:py-2 lg:max-h-[600px] justify-center lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {allImages.map((img, index) => {
-                const isSelected = selectedImage === img;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setSelectedImage(img);
-                    }}
-                    className={`relative flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 rounded-lg overflow-hidden border-2 transition-all bg-white shadow-sm ${
-                      isSelected
-                        ? "border-primary ring-2 ring-primary/20 scale-105 shadow-md z-10"
-                        : "border-slate-200 hover:border-slate-300 hover:scale-105 hover:shadow-md"
-                    }`}
-                    aria-label={`Select image ${index + 1} of ${allImages.length}`}
-                    aria-pressed={isSelected}
-                  >
-                    <Image
-                      src={img}
-                      alt={`${product.name} - View ${index + 1}`}
-                      fill
-                      className="object-contain p-1.5"
-                    />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Top Section - Row 2: Description and Variations */}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-        {/* Product Info & Description */}
-        <div className="md:w-[60%] space-y-2 md:space-y-3">
-          <div>
-            <span className="text-xs uppercase tracking-wider text-primary font-semibold">
-              {categoryLabel}
-            </span>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mt-1">
-              {displayProductName}
-            </h1>
-            <p className="text-base md:text-lg text-slate-600 mt-1">{product.subtitle}</p>
-
-            {/* Variant selector buttons (e.g. 60k / 120k / 400k or F2-050 / F2-080) */}
-            {pricedVariations.length > 0 && (
-              <div className="flex flex-wrap gap-2 md:gap-3 mt-2">
-                {pricedVariations.map((variant, idx) => {
-                  // Extract label: F2-050, F2-080, LVQ2-080, LVXC-120, etc. or 40kWh, 60kWh, etc.
-                  let label = variant.name;
-                  const f2Match = variant.name.match(/(F2-\d+)/i);
-                  const lvq2Match = variant.name.match(/(LVQ2-\d+)/i);
-                  const lvxcMatch = variant.name.match(/(LVXC-\d+)/i);
-                  const kWhMatch = variant.name.match(/(\d+\s*kWh)/i);
-                  const kwMatch = variant.name.match(/(\d+\s*kW?)/i);
-                  
-                  if (f2Match) {
-                    label = f2Match[1].toUpperCase();
-                  } else if (lvq2Match) {
-                    label = lvq2Match[1].toUpperCase();
-                  } else if (lvxcMatch) {
-                    label = lvxcMatch[1].toUpperCase();
-                  } else if (kWhMatch) {
-                    // Match kWh first (e.g., "40kWh")
-                    label = kWhMatch[1];
-                  } else if (kwMatch) {
-                    // Fallback to kW or k (e.g., "60kW" or "60k")
-                    label = kwMatch[1];
-                  } else {
-                    // Fallback: use first part of name or clean it up
-                    label = variant.name.split("–")[0]?.trim() || variant.name;
-                  }
-                  
-                  const isActive = idx === selectedVariantIndex;
-                  return (
-                    <button
-                      key={variant.name}
-                      type="button"
-                      onClick={() => setSelectedVariantIndex(idx)}
-                      className={`px-3 py-1.5 md:px-4 rounded-full text-xs md:text-sm font-semibold border shadow-sm transition-all ${
-                        isActive
-                          ? "bg-primary text-white border-primary shadow-md scale-[1.03]"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-primary/60 hover:bg-primary/5"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1">
-          {product.tag && (
-              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold">
-                {product.tag}
-              </span>
-            )}
-            {currentPrice && (
+      {/* Mobile Sticky Buy Button Bar - Only visible on mobile (for both layouts) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-slate-200 shadow-2xl z-50 p-4 safe-area-inset-bottom">
+        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+          <div className="flex-1">
+            {currentPrice && !isCabinetProduct && !isContainerProduct ? (
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900">
-                  {currentPrice}
-                </span>
-                <span className="text-xs md:text-sm text-slate-500">per unit</span>
-            </div>
-          )}
-          </div>
-
-          {/* Trust Badges */}
-          <div className="flex flex-wrap items-center gap-3 md:gap-4 pt-1">
-            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600">
-              <RiShieldCheckLine className="h-4 w-4 text-primary" />
-              <span>5-Year Warranty</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600">
-              <RiAwardLine className="h-4 w-4 text-primary" />
-              <span>Certified Quality</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600">
-              <RiCheckLine className="h-4 w-4 text-primary" />
-              <span>500+ Installations</span>
-            </div>
-          </div>
-
-          {/* Quantity Input */}
-          <div className="pt-2 md:pt-3">
-            <label className="block text-sm md:text-base font-semibold text-slate-900 mb-2">
-              Quantity
-            </label>
-            <div className="flex items-center gap-2 md:gap-3">
-              <button
-                type="button"
-                onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg border-2 border-slate-300 hover:border-primary hover:bg-primary/5 text-slate-700 hover:text-primary transition-all font-bold text-lg"
-                aria-label="Decrease quantity"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 1;
-                  setQuantity(Math.max(1, value));
-                }}
-                className="w-20 md:w-24 h-10 md:h-12 text-center text-base md:text-lg font-semibold border-2 border-slate-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setQuantity((prev) => prev + 1)}
-                className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg border-2 border-slate-300 hover:border-primary hover:bg-primary/5 text-slate-700 hover:text-primary transition-all font-bold text-lg"
-                aria-label="Increase quantity"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Get Quote Button - Prominent CTA */}
-          <div className="pt-2 md:pt-3">
-            <Link
-              href={`/contact?subject=quote&product=${encodeURIComponent(product.category)}&productName=${encodeURIComponent(displayProductName)}&quantity=${quantity}&price=${encodeURIComponent(currentPrice || '')}`}
-              className="inline-flex items-center justify-center gap-2 w-full md:w-auto bg-primary hover:bg-primary/90 text-white font-bold px-6 py-2.5 md:px-8 md:py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-base md:text-lg group"
-            >
-              <span>Get Quote</span>
-              <RiArrowRightSLine className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <p className="text-xs md:text-sm text-slate-500 mt-1.5 text-center md:text-left">
-              Get a personalized quote for this product
-            </p>
-          </div>
-
-          {details && (
-              <div>
-                <h2 className="text-lg md:text-xl font-semibold text-slate-900 mb-2 md:mb-3">
-                  Description
-                </h2>
-                <p className="text-sm md:text-base text-slate-600 leading-relaxed">
-                {descriptionText}
-                </p>
-            </div>
-          )}
+                <span className="text-2xl font-bold text-slate-900">{currentPrice}</span>
+                <span className="text-xs text-slate-500">per unit</span>
               </div>
-
-              {/* Product Specifications */}
-        {((details && details.specifications && details.specifications.length > 0) || (variantInfo.led || variantInfo.size || variantInfo.battery || variantInfo.solar)) && (
-                <div className="md:w-[40%]">
-            <h2 className="text-lg md:text-xl font-semibold text-slate-900 mb-3 md:mb-4">
-              Product Specifications
-                  </h2>
-            <div className="overflow-x-auto overflow-hidden border border-slate-200 rounded-xl bg-white">
-              <table className="w-full min-w-[300px]">
-                <tbody className="divide-y divide-slate-200">
-                  {/* Add variant info for lamp products */}
-                  {product.category === "solar-street" && variantInfo.led && (
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-2 md:px-4 py-2 md:py-3 w-10 md:w-12">
-                        <div className="text-primary">
-                          <RiFlashlightLine className="h-5 w-5" />
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="font-semibold text-sm md:text-base text-slate-900 min-w-[120px] md:min-w-[140px]">
-                          LED
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="text-sm md:text-base text-slate-700">
-                          {variantInfo.led}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {product.category === "solar-street" && variantInfo.size && (
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-2 md:px-4 py-2 md:py-3 w-10 md:w-12">
-                        <div className="text-primary">
-                          <RiRulerLine className="h-5 w-5" />
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="font-semibold text-sm md:text-base text-slate-900 min-w-[120px] md:min-w-[140px]">
-                          Size
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="text-sm md:text-base text-slate-700">
-                          {variantInfo.size}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {product.category === "solar-street" && variantInfo.battery && (
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-2 md:px-4 py-2 md:py-3 w-10 md:w-12">
-                        <div className="text-primary">
-                          <RiBatteryChargeLine className="h-5 w-5" />
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="font-semibold text-sm md:text-base text-slate-900 min-w-[120px] md:min-w-[140px]">
-                          Battery
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="text-sm md:text-base text-slate-700">
-                          {variantInfo.battery}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {product.category === "solar-street" && variantInfo.solar && (
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-2 md:px-4 py-2 md:py-3 w-10 md:w-12">
-                        <div className="text-primary">
-                          <RiSunLine className="h-5 w-5" />
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="font-semibold text-sm md:text-base text-slate-900 min-w-[120px] md:min-w-[140px]">
-                          Solar Panel
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <div className="text-sm md:text-base text-slate-700">
-                          {variantInfo.solar}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {/* Regular specifications */}
-                  {details && details.specifications && details.specifications
-                    .filter((spec) => {
-                      // Show only important specifications from marketing perspective
-                      const lowerLabel = spec.label.toLowerCase();
-                      // Key marketing specs: Model, Power, Battery Capacity, Solar Panel, Output Voltage, Connector/Gun, Dimensions, Warranty
-                      return (
-                        lowerLabel.includes("model") ||
-                        lowerLabel.includes("code") ||
-                        (lowerLabel.includes("power") && (lowerLabel.includes("rated") || lowerLabel.includes("maximum") || lowerLabel.includes("output"))) ||
-                        (lowerLabel.includes("battery") && lowerLabel.includes("capacity")) ||
-                        lowerLabel.includes("solar panel") ||
-                        (lowerLabel.includes("voltage") && lowerLabel.includes("output")) ||
-                        lowerLabel.includes("connector") ||
-                        (lowerLabel.includes("gun") && (lowerLabel.includes("type") || lowerLabel.includes("line"))) ||
-                        lowerLabel.includes("dimension") ||
-                        lowerLabel.includes("warranty")
-                      );
-                    })
-                    .map((spec, index) => {
-                    // Get icon based on specification label
-                    const getIcon = (label: string) => {
-                      const lowerLabel = label.toLowerCase();
-                      if (lowerLabel.includes("model") || lowerLabel.includes("code")) {
-                        return <RiFileList3Line className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("power") || lowerLabel.includes("output") || lowerLabel.includes("rated")) {
-                        return <RiFlashlightLine className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("connector") || lowerLabel.includes("gun") || lowerLabel.includes("line")) {
-                        return <RiPlugLine className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("type") || lowerLabel.includes("voltage") || lowerLabel.includes("current") || lowerLabel.includes("frequency")) {
-                        return <RiSettings3Line className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("dimension") || lowerLabel.includes("size") || lowerLabel.includes("length")) {
-                        return <RiRulerLine className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("battery") && lowerLabel.includes("capacity")) {
-                        return <RiBatteryChargeLine className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("solar panel")) {
-                        return <RiSunLine className="h-5 w-5" />;
-                      }
-                      if (lowerLabel.includes("efficiency") || lowerLabel.includes("protection") || lowerLabel.includes("warranty")) {
-                        return <RiBatteryChargeLine className="h-5 w-5" />;
-                      }
-                      return <RiBatteryChargeLine className="h-5 w-5" />;
-                    };
-
-                            return (
-                      <tr
-                        key={index}
-                                className="hover:bg-slate-50 transition-colors"
-                      >
-                        <td className="px-2 md:px-4 py-2 md:py-3 w-10 md:w-12">
-                          <div className="text-primary">
-                            {getIcon(spec.label)}
-                          </div>
-                        </td>
-                        <td className="px-2 md:px-4 py-2 md:py-3">
-                          <div className="font-semibold text-sm md:text-base text-slate-900 min-w-[120px] md:min-w-[140px]">
-                            {spec.label}
-                          </div>
-                        </td>
-                        <td className="px-2 md:px-4 py-2 md:py-3">
-                          <div className="text-sm md:text-base text-slate-700">
-                            {spec.value}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-                        </div>
-                      </div>
-        )}
+            ) : (
+              <div className="text-sm font-semibold text-slate-900">Request Pricing</div>
+            )}
+          </div>
+          <Link
+            href={`/contact?subject=${isEVProduct ? 'quote' : 'rfq'}&product=${encodeURIComponent(product.category)}&productName=${encodeURIComponent(displayProductName)}&quantity=${quantity}&price=${encodeURIComponent(currentPrice || '')}`}
+            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition-all text-base"
+          >
+            <span>{isEVProduct ? 'Get Quote' : 'Request RFQ'}</span>
+            <RiArrowRightSLine className="h-5 w-5" />
+          </Link>
+        </div>
       </div>
+
+      {/* ZONE C: Below the Fold - Deep Dive Section */}
+      {/* Description Section - Full Width */}
+      {details && descriptionText && (
+        <div className="mt-6 md:mt-8 bg-white rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-200 shadow-sm">
+          <h2 className="text-xl md:text-2xl font-semibold text-slate-900 mb-3 md:mb-4">
+            Description
+          </h2>
+          <p className="text-sm md:text-base text-slate-600 leading-relaxed whitespace-pre-line">
+            {descriptionText}
+          </p>
+        </div>
+      )}
 
       {/* Bottom Section - Full Width with Tabs */}
       <div className="mt-6 md:mt-12">
@@ -677,9 +343,24 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             >
               <span className="flex items-center gap-1 md:gap-2">
                 <RiChat3Line className="h-3 w-3 md:h-4 md:w-4" />
-                Reviews
+                {isEVProduct ? "Reviews" : "Case Studies"}
               </span>
             </button>
+            {!isEVProduct && (
+              <button
+                onClick={() => setActiveTab("documentation")}
+                className={`px-3 md:px-6 py-2 md:py-3 font-semibold text-xs md:text-sm transition-colors border-b-2 whitespace-nowrap ${
+                  activeTab === "documentation"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <span className="flex items-center gap-1 md:gap-2">
+                  <RiDownloadLine className="h-3 w-3 md:h-4 md:w-4" />
+                  Documentation
+                </span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("projects")}
               className={`px-3 md:px-6 py-2 md:py-3 font-semibold text-xs md:text-sm transition-colors border-b-2 whitespace-nowrap ${
@@ -745,29 +426,66 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
           {activeTab === "specifications" && (
             <div className="space-y-4 md:space-y-6">
-              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">Technical Specifications</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl md:text-2xl font-bold text-slate-900">
+                  {isEVProduct ? "Technical Specifications" : "Complete Technical Specifications"}
+                </h3>
+                {!isEVProduct && (
+                  <button
+                    onClick={() => {
+                      const specSheetUrl = `/specs/${product.id}.pdf`;
+                      window.open(specSheetUrl, '_blank');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold"
+                  >
+                    <RiDownloadLine className="h-4 w-4" />
+                    <span>Download Full Spec Sheet</span>
+                  </button>
+                )}
+              </div>
               {currentSpecifications && currentSpecifications.length > 0 && (
                 <div className="overflow-x-auto">
-                  {/* Mobile: 1 column, Desktop: 3 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-slate-200 rounded-xl bg-white overflow-hidden">
-                    {currentSpecifications.map((spec, index) => {
-                      const isLastItem = index === currentSpecifications.length - 1;
-                      const isNotFirstColumn = index % 3 !== 0;
-                      return (
-                        <div 
-                          key={index} 
-                          className={`p-3 md:p-4 ${
-                            !isLastItem ? 'border-b md:border-b-0 border-slate-200' : ''
-                          } ${
-                            isNotFirstColumn ? 'md:border-l border-slate-200' : ''
-                          }`}
-                        >
-                          <div className="text-xs text-slate-500 font-medium mb-1">{spec.label}</div>
-                          <div className="text-sm text-slate-900">{spec.value}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* B2B: Dense table format, Consumer: Card format */}
+                  {!isEVProduct ? (
+                    /* Dense Table for B2B */
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100 border-b-2 border-slate-300">
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Specification</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {currentSpecifications.map((spec, index) => (
+                          <tr key={index} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 font-semibold text-sm text-slate-900">{spec.label}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{spec.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    /* Card Format for Consumer */
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-slate-200 rounded-xl bg-white overflow-hidden">
+                      {currentSpecifications.map((spec, index) => {
+                        const isLastItem = index === currentSpecifications.length - 1;
+                        const isNotFirstColumn = index % 3 !== 0;
+                        return (
+                          <div 
+                            key={index} 
+                            className={`p-3 md:p-4 ${
+                              !isLastItem ? 'border-b md:border-b-0 border-slate-200' : ''
+                            } ${
+                              isNotFirstColumn ? 'md:border-l border-slate-200' : ''
+                            }`}
+                          >
+                            <div className="text-xs text-slate-500 font-medium mb-1">{spec.label}</div>
+                            <div className="text-sm text-slate-900">{spec.value}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -775,7 +493,74 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
           {activeTab === "reviews" && (
             <div className="space-y-4 md:space-y-6">
-              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">Reviews & Community</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">
+                {isEVProduct ? "Reviews & Community" : "Case Studies & Project References"}
+              </h3>
+              
+              {!isEVProduct ? (
+                /* B2B: Case Studies */
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl border-2 border-slate-200 p-6 hover:border-primary/30 hover:shadow-lg transition-all">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <RiAwardLine className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-bold text-slate-900 mb-1">Highway Infrastructure Project</h4>
+                        <p className="text-sm text-slate-600">Municipality of [City Name] - 500 Units Supplied</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                      Successfully supplied and installed 500 units of {displayProductName} for a major highway lighting project. 
+                      The project was completed on schedule with zero defects. All units passed quality inspection and have been 
+                      operational for 2+ years with 99.8% uptime.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">500 Units</span>
+                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">On-Time Delivery</span>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">2+ Years Operational</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl border-2 border-slate-200 p-6 hover:border-primary/30 hover:shadow-lg transition-all">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <RiAwardLine className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-bold text-slate-900 mb-1">Commercial Complex Installation</h4>
+                        <p className="text-sm text-slate-600">[Company Name] - 200 Units Supplied</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                      Delivered 200 units for a large commercial complex. Custom configuration was provided to meet specific 
+                      requirements. Installation was completed by our certified technicians with full documentation and training provided.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">200 Units</span>
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">Custom Configuration</span>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Certified Installation</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl border-2 border-slate-200 p-6">
+                    <h4 className="text-base font-semibold text-slate-900 mb-2">Request Project References</h4>
+                    <p className="text-sm text-slate-600 mb-4">
+                      For detailed case studies, project references, and testimonials from government contractors and commercial clients, 
+                      please contact our sales team.
+                    </p>
+                    <Link
+                      href={`/contact?subject=references&product=${encodeURIComponent(product.category)}&productName=${encodeURIComponent(displayProductName)}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold"
+                    >
+                      <RiChat3Line className="h-4 w-4" />
+                      <span>Contact for References</span>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                /* Consumer: Reviews */
+                <>
               
               {/* Stats Section - Enhanced */}
               <div className="grid grid-cols-3 gap-2 md:gap-5 mb-6 md:mb-8">
@@ -990,6 +775,108 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                     </div>
                   </div>
                 </div>
+              </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === "documentation" && !isEVProduct && (
+            <div className="space-y-4 md:space-y-6">
+              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">
+                Technical Documentation & Resources
+              </h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Download technical documentation, CAD files, and installation guides for your project planning.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Spec Sheet PDF */}
+                <button
+                  onClick={() => {
+                    const specSheetUrl = `/specs/${product.id}.pdf`;
+                    window.open(specSheetUrl, '_blank');
+                  }}
+                  className="group flex items-center gap-4 p-4 bg-white rounded-xl border-2 border-slate-200 hover:border-primary hover:shadow-lg transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <RiFileList3Line className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-slate-900 mb-1">Product Specification Sheet</h4>
+                    <p className="text-xs text-slate-600">Complete technical specifications in PDF format</p>
+                  </div>
+                  <RiDownloadLine className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
+                </button>
+
+                {/* Installation Guide */}
+                <button
+                  onClick={() => {
+                    const installGuideUrl = `/docs/${product.id}-installation.pdf`;
+                    window.open(installGuideUrl, '_blank');
+                  }}
+                  className="group flex items-center gap-4 p-4 bg-white rounded-xl border-2 border-slate-200 hover:border-primary hover:shadow-lg transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <RiFileList3Line className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-slate-900 mb-1">Installation Guide</h4>
+                    <p className="text-xs text-slate-600">Step-by-step installation instructions</p>
+                  </div>
+                  <RiDownloadLine className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
+                </button>
+
+                {/* CAD Files */}
+                <button
+                  onClick={() => {
+                    const cadUrl = `/cad/${product.id}.dwg`;
+                    window.open(cadUrl, '_blank');
+                  }}
+                  className="group flex items-center gap-4 p-4 bg-white rounded-xl border-2 border-slate-200 hover:border-primary hover:shadow-lg transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <RiFileList3Line className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-slate-900 mb-1">CAD Drawing (DWG)</h4>
+                    <p className="text-xs text-slate-600">AutoCAD compatible drawing files</p>
+                  </div>
+                  <RiDownloadLine className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
+                </button>
+
+                {/* BIM Objects */}
+                <button
+                  onClick={() => {
+                    const bimUrl = `/bim/${product.id}.rfa`;
+                    window.open(bimUrl, '_blank');
+                  }}
+                  className="group flex items-center gap-4 p-4 bg-white rounded-xl border-2 border-slate-200 hover:border-primary hover:shadow-lg transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <RiFileList3Line className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-slate-900 mb-1">BIM Object (RFA)</h4>
+                    <p className="text-xs text-slate-600">Revit-compatible BIM files</p>
+                  </div>
+                  <RiDownloadLine className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
+                </button>
+              </div>
+
+              <div className="bg-slate-50 rounded-xl border-2 border-slate-200 p-6 mt-6">
+                <h4 className="text-base font-semibold text-slate-900 mb-2">Need Additional Documentation?</h4>
+                <p className="text-sm text-slate-600 mb-4">
+                  For custom configurations, detailed engineering drawings, or project-specific documentation, 
+                  please contact our technical support team.
+                </p>
+                <Link
+                  href={`/contact?subject=documentation&product=${encodeURIComponent(product.category)}&productName=${encodeURIComponent(displayProductName)}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold"
+                >
+                  <RiChat3Line className="h-4 w-4" />
+                  <span>Request Custom Documentation</span>
+                </Link>
               </div>
             </div>
           )}

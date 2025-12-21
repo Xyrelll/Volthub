@@ -44,13 +44,25 @@ For detailed setup instructions, see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md).
 
 ## AI Chatbot Setup
 
-This project includes an **AI-powered customer support chatbot** that uses **Ollama** (open-source LLM) with **RAG (Retrieval Augmented Generation)**.
+This project includes an **AI-powered customer support chatbot** that uses **Ollama** (open-source LLM) with **RAG (Retrieval Augmented Generation)** to provide intelligent, context-aware responses about products, services, and company information.
+
+### Features
+
+- 🤖 **Open-source LLM integration** - Uses Ollama for local/cloud LLM inference
+- 📚 **RAG-powered** - Automatically reads and understands your project context
+- 🎯 **Context-aware** - Knows which product page users are viewing
+- 💬 **Conversational** - Maintains conversation history for natural interactions
+- 📞 **Contact integration** - Seamlessly redirects to contact form when needed
 
 ### Quick Setup
 
 1. **Install Ollama**: Visit [https://ollama.ai](https://ollama.ai) and install for your OS
-2. **Pull a model**: `ollama pull llama3.2`
-3. **Configure** (optional): Add to `.env`:
+2. **Pull a model**: 
+   ```bash
+   ollama pull llama3.2
+   # Or for cloud models: gpt-oss:20b-cloud, deepseek-v3.1:671b-cloud, etc.
+   ```
+3. **Configure** (optional): Create `.env`:
    ```env
    OLLAMA_BASE_URL
    OLLAMA_MODEL=llama3.2
@@ -58,6 +70,36 @@ This project includes an **AI-powered customer support chatbot** that uses **Oll
 4. **Test**: Visit `http://localhost:3000/api/chat` to check status
 
 For detailed setup instructions, see [LLM_SETUP.md](./LLM_SETUP.md).
+
+### How It Works
+
+The chatbot uses **RAG (Retrieval Augmented Generation)** to:
+- Extract knowledge from your product data, company info, and specifications
+- Retrieve relevant context when users ask questions
+- Generate accurate, context-aware responses using the LLM
+- Understand which product page users are viewing for better assistance
+
+### Knowledge Base
+
+The chatbot automatically indexes:
+- ✅ Product information (names, descriptions, specifications, features)
+- ✅ Company information (mission, services, contact details)
+- ✅ Product categories and use cases
+- ✅ Pricing and warranty information
+- ✅ Installation and service details
+
+### Usage
+
+The chatbot appears as a floating "Service" button in the bottom-right corner of all pages. Users can:
+- Ask questions about products and services
+- Get information about pricing, specifications, and features
+- Learn about applicable use cases for products
+- Request contact information or support
+
+### API Endpoints
+
+- `GET /api/chat` - Health check and Ollama status
+- `POST /api/chat` - Send chat messages and get AI responses
 
 ## Environment Variables
 

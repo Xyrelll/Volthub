@@ -303,7 +303,8 @@ async function callOllama(
     ];
 
     // Handle both localhost and cloud Ollama URLs
-    const apiUrl = OLLAMA_BASE_URL.includes('ollama.com') 
+    // If base URL already includes /api (cloud), use it directly; otherwise append /api
+    const apiUrl = OLLAMA_BASE_URL.includes('ollama.com') || OLLAMA_BASE_URL.endsWith('/api')
       ? `${OLLAMA_BASE_URL}/chat`  // Cloud API: https://ollama.com/api/chat
       : `${OLLAMA_BASE_URL}/api/chat`;  // Local: http://localhost:11434/api/chat
     
@@ -364,15 +365,21 @@ export async function POST(request: Request) {
     // Generate session ID if not provided (fallback)
     const chatSessionId = sessionId || `chat_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
-    // Ensure session exists in database (create or update)
-    const { data: existingSession } = await supabase
+    // Ensure session exists in database
+    // First check if session exists
+    const { data: existingSession, error: sessionCheckError } = await supabase
       .from("chat_sessions")
       .select("id, session_id")
       .eq("session_id", chatSessionId)
-      .single();
+      .maybeSingle();
+
+    if (sessionCheckError && sessionCheckError.code !== 'PGRST116') {
+      // PGRST116 is "not found" which is expected, other errors are real issues
+      console.error("Error checking for existing session:", sessionCheckError);
+    }
 
     if (!existingSession) {
-      // Create new session
+      // Create new session - this MUST succeed before we can insert messages
       const { data: newSession, error: sessionError } = await supabase
         .from("chat_sessions")
         .insert({
@@ -387,7 +394,9 @@ export async function POST(request: Request) {
 
       if (sessionError) {
         console.error("Error creating chat session:", sessionError);
-        // Continue even if session creation fails, but log the error
+        console.error("Session creation failed - messages cannot be saved without a session");
+        console.error("Error details:", JSON.stringify(sessionError, null, 2));
+        // Continue anyway - the message insert will fail and we'll log that error too
       } else {
         console.log("Created new chat session:", newSession?.session_id);
       }
@@ -404,25 +413,90 @@ export async function POST(request: Request) {
 
       if (updateError) {
         console.error("Error updating chat session:", updateError);
+        console.error("Error details:", JSON.stringify(updateError, null, 2));
       }
     }
 
     // Save user message to database
+    // First get session data to check if it has names
+    const { data: sessionData, error: verifyError } = await supabase
+      .from("chat_sessions")
+      .select("session_id, first_name, last_name")
+      .eq("session_id", chatSessionId)
+      .maybeSingle();
+
+    if (verifyError) {
+      console.error("Error verifying session before message insert:", verifyError);
+    }
+
+    if (!sessionData) {
+      console.error("Session does not exist - cannot insert message. Session ID:", chatSessionId);
+      console.error("This usually means the session creation failed above.");
+    }
+
+    // Include names if session already has them (from contact form submission)
+    const userMessageInsert: {
+      session_id: string;
+      sender: string;
+      message: string;
+      product_id: string | null;
+      page_path: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+    } = {
+      session_id: chatSessionId,
+      sender: "user",
+      message: message,
+      product_id: productId || null,
+      page_path: currentPagePath || null,
+    };
+
+    // Add names if they exist in the session
+    if (sessionData?.first_name) {
+      userMessageInsert.first_name = sessionData.first_name;
+    }
+    if (sessionData?.last_name) {
+      userMessageInsert.last_name = sessionData.last_name;
+    }
+
+    // If session has names but some messages don't, update them
+    if (sessionData?.first_name || sessionData?.last_name) {
+      const { error: updateExistingError } = await supabase
+        .from("chat_messages")
+        .update({
+          first_name: sessionData.first_name || null,
+          last_name: sessionData.last_name || null,
+        })
+        .eq("session_id", chatSessionId)
+        .is("first_name", null);
+
+      if (updateExistingError) {
+        console.error("Error updating existing messages with names:", updateExistingError);
+      } else {
+        console.log("Updated existing messages in session with names");
+      }
+    }
+
     const { data: userMessageData, error: userMessageError } = await supabase
       .from("chat_messages")
-      .insert({
-        session_id: chatSessionId,
-        sender: "user",
-        message: message,
-        product_id: productId || null,
-        page_path: currentPagePath || null,
-      })
+      .insert(userMessageInsert)
       .select();
 
     if (userMessageError) {
       console.error("Error saving user message:", userMessageError);
       console.error("Session ID:", chatSessionId);
+      console.error("Error code:", userMessageError.code);
+      console.error("Error message:", userMessageError.message);
       console.error("Error details:", JSON.stringify(userMessageError, null, 2));
+      
+      // Common error: foreign key constraint violation
+      if (userMessageError.code === '23503' || userMessageError.message?.includes('foreign key')) {
+        console.error("FOREIGN KEY ERROR: The chat session does not exist in the database.");
+        console.error("This means the session creation failed. Check:");
+        console.error("1. Does the chat_sessions table exist?");
+        console.error("2. Are the RLS policies allowing inserts?");
+        console.error("3. Is the Supabase connection working?");
+      }
     } else {
       console.log("User message saved successfully:", userMessageData?.[0]?.id);
     }
@@ -462,21 +536,51 @@ export async function POST(request: Request) {
       : await callOllama(messages, context, currentProduct, currentPagePath);
 
     // Save support response to database
+    // Include names if session already has them (from contact form submission)
+    const supportMessageInsert: {
+      session_id: string;
+      sender: string;
+      message: string;
+      product_id: string | null;
+      page_path: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+    } = {
+      session_id: chatSessionId,
+      sender: "support",
+      message: response,
+      product_id: productId || null,
+      page_path: currentPagePath || null,
+    };
+
+    // Add names if they exist in the session (re-fetch to get latest)
+    if (sessionData?.first_name) {
+      supportMessageInsert.first_name = sessionData.first_name;
+    }
+    if (sessionData?.last_name) {
+      supportMessageInsert.last_name = sessionData.last_name;
+    }
+
     const { data: supportMessageData, error: supportMessageError } = await supabase
       .from("chat_messages")
-      .insert({
-        session_id: chatSessionId,
-        sender: "support",
-        message: response,
-        product_id: productId || null,
-        page_path: currentPagePath || null,
-      })
+      .insert(supportMessageInsert)
       .select();
 
     if (supportMessageError) {
       console.error("Error saving support message:", supportMessageError);
       console.error("Session ID:", chatSessionId);
+      console.error("Error code:", supportMessageError.code);
+      console.error("Error message:", supportMessageError.message);
       console.error("Error details:", JSON.stringify(supportMessageError, null, 2));
+      
+      // Common error: foreign key constraint violation
+      if (supportMessageError.code === '23503' || supportMessageError.message?.includes('foreign key')) {
+        console.error("FOREIGN KEY ERROR: The chat session does not exist in the database.");
+        console.error("This means the session creation failed. Check:");
+        console.error("1. Does the chat_sessions table exist?");
+        console.error("2. Are the RLS policies allowing inserts?");
+        console.error("3. Is the Supabase connection working?");
+      }
     } else {
       console.log("Support message saved successfully:", supportMessageData?.[0]?.id);
     }
@@ -502,13 +606,13 @@ export async function POST(request: Request) {
       );
     }
 
-      return NextResponse.json(
-        {
-          error: "Failed to generate response",
-          message: errorMessage || "An unexpected error occurred",
-        },
-        { status: 500 }
-      );
+    return NextResponse.json(
+      {
+        error: "Failed to generate response",
+        message: errorMessage || "An unexpected error occurred",
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -519,7 +623,7 @@ export async function GET() {
   try {
     // Check if Ollama is available
     // Handle both localhost and cloud Ollama URLs
-    const tagsUrl = OLLAMA_BASE_URL.includes('ollama.com')
+    const tagsUrl = OLLAMA_BASE_URL.includes('ollama.com') || OLLAMA_BASE_URL.endsWith('/api')
       ? `${OLLAMA_BASE_URL}/tags`  // Cloud API: https://ollama.com/api/tags
       : `${OLLAMA_BASE_URL}/api/tags`;  // Local: http://localhost:11434/api/tags
     

@@ -45,7 +45,6 @@ const ChatSupport = () => {
       setSessionId(storedSessionId);
     }
   }, []);
-
   // Detect current page (product pages and other pages)
   useEffect(() => {
     if (!pathname) return;

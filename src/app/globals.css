@@ -368,6 +368,36 @@ html {
   }
 }
 
+@keyframes slideInTop {
+  0% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInBottom {
+  0% {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-top {
+  animation: slideInTop 1.2s ease-out;
+}
+
+.slide-in-bottom {
+  animation: slideInBottom 1.2s ease-out;
+}
+
 @keyframes fadeInUp {
   0% {
     transform: translateY(50px);

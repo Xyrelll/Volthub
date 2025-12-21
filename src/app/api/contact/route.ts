@@ -110,38 +110,64 @@ export async function POST(request: Request) {
 
       // Update database to mark email as sent
       if (submission?.id) {
-        await supabase
+        const { error: emailUpdateError } = await supabase
           .from("contact_submissions")
           .update({
             email_sent: true,
             email_sent_at: new Date().toISOString(),
           })
           .eq("id", submission.id);
-      }
 
-      // Update chat session with user's name if chatSessionId is provided
-      if (chatSessionId) {
-        await supabase
-          .from("chat_sessions")
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-          })
-          .eq("session_id", chatSessionId);
-
-        // Also update all messages in this session with the name
-        await supabase
-          .from("chat_messages")
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-          })
-          .eq("session_id", chatSessionId)
-          .is("first_name", null); // Only update messages that don't already have a name
+        if (emailUpdateError) {
+          console.error("Error updating email_sent status:", emailUpdateError);
+        }
       }
     } catch (emailError) {
       console.error("Error sending email:", emailError);
       // Don't fail the request if email fails, submission is already saved
+    }
+
+    // Update chat session with user's name if chatSessionId is provided
+    // Do this outside the email try-catch so it always runs
+    if (chatSessionId) {
+      console.log("Updating chat session with name:", chatSessionId, firstName, lastName);
+      
+      // Update chat session
+      const { data: sessionUpdateData, error: sessionUpdateError } = await supabase
+        .from("chat_sessions")
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+        })
+        .eq("session_id", chatSessionId)
+        .select();
+
+      if (sessionUpdateError) {
+        console.error("Error updating chat session with name:", sessionUpdateError);
+        console.error("Session ID:", chatSessionId);
+        console.error("Error details:", JSON.stringify(sessionUpdateError, null, 2));
+      } else {
+        console.log("Chat session updated successfully:", sessionUpdateData);
+      }
+
+      // Also update all messages in this session with the name
+      const { data: messagesUpdateData, error: messagesUpdateError } = await supabase
+        .from("chat_messages")
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+        })
+        .eq("session_id", chatSessionId)
+        .is("first_name", null) // Only update messages that don't already have a name
+        .select();
+
+      if (messagesUpdateError) {
+        console.error("Error updating chat messages with name:", messagesUpdateError);
+        console.error("Session ID:", chatSessionId);
+        console.error("Error details:", JSON.stringify(messagesUpdateError, null, 2));
+      } else {
+        console.log(`Updated ${messagesUpdateData?.length || 0} chat messages with name`);
+      }
     }
 
     return NextResponse.json({ ok: true });
@@ -153,5 +179,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-

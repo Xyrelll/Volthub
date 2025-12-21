@@ -10,9 +10,10 @@ import RecommendedProducts from "./components/RecommendedProducts";
 import BlogResourcesSection from "./components/BlogResourcesSection";
 import StatsSection from "./components/StatsSection";
 // import HowItWorksSection from "./components/HowItWorksSection";
-import UserSegmentationSection from "./components/UserSegmentationSection";
+// import UserSegmentationSection from "./components/UserSegmentationSection";
 // import SocialProofSection from "./components/SocialProofSection";
 import FAQSection from "./components/FAQSection";
+import ProjectCasesSection from "./components/ProjectCasesSection";
 // import EnergySavingsCalculator from "./components/EnergySavingsCalculator";
 // import VideoSection from "./components/VideoSection";
 import {
@@ -20,12 +21,13 @@ import {
   stats,
   productShowcases,
   // howItWorksSteps,
-  userSegments,
+  // userSegments,
   // testimonials,
   // videoItems,
   // trustBadges,
   resources,
   faqs,
+  projectCases,
 } from "./components/homeData";
 
 export default function Home() {
@@ -78,10 +80,18 @@ export default function Home() {
       /> */}
 
       {/* User Segmentation Section */}
-      <UserSegmentationSection
+      {/* <UserSegmentationSection
         title="Find Your Perfect Solution"
         description="Whether you're a homeowner, business owner, or developer, we have the right energy solution for you."
         segments={userSegments}
+      /> */}
+
+      {/* Project Cases Section */}
+      <ProjectCasesSection
+        title="Customer Project Cases"
+        description="Government / UNDP / World Bank / NGO Projects"
+        badge="Our Work"
+        projectCases={projectCases}
       />
 
       {/* Social Proof Section */}
