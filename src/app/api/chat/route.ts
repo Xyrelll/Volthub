@@ -168,7 +168,7 @@ async function callCloudLLM(
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${CLOUD_LLM_API_KEY}`,
-          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://volthubssupabase.app.netlify",
+          "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://volthubsupabase.app.netlify",
         },
         body: JSON.stringify({
           model: CLOUD_LLM_MODEL,

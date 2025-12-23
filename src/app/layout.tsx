@@ -22,7 +22,7 @@ const orbitron = Orbitron({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubs.netlify.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubsupabase.netlify.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
