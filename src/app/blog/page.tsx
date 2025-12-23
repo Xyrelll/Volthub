@@ -4,14 +4,50 @@ import { RiArrowRightLine } from "react-icons/ri";
 import LayoutContainer from "@/components/layout/LayoutContainer";
 import { resources } from "@/app/(home)/components/homeData";
 
-export const metadata = {
-  title: "Blog | VoltHub Energy",
-  description: "Latest blogs and insights on commercial energy storage, EV charging, and smart energy solutions.",
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Blog | Latest Insights on Energy Storage & EV Charging - VoltHub",
+  description: "Stay updated with the latest blogs, guides, and insights on commercial energy storage, EV charging infrastructure, solar energy, and smart grid technology. Expert articles from VoltHub Energy.",
+  keywords: [
+    "energy storage blog",
+    "EV charging news",
+    "solar energy insights",
+    "commercial energy solutions",
+    "smart grid technology",
+    "renewable energy articles",
+    "energy efficiency guides",
+    "VoltHub blog",
+  ],
+  openGraph: {
+    title: "Blog | Latest Insights on Energy Storage & EV Charging - VoltHub",
+    description: "Stay updated with the latest blogs, guides, and insights on commercial energy storage, EV charging infrastructure, solar energy, and smart grid technology.",
+    type: "website",
+    url: "/blog",
+    siteName: "VoltHub Energy",
+    images: [
+      {
+        url: "/Blog/blogtitle.png",
+        width: 1200,
+        height: 630,
+        alt: "VoltHub Blog - Energy Storage & EV Charging Insights",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog | Latest Insights on Energy Storage & EV Charging - VoltHub",
+    description: "Stay updated with the latest blogs, guides, and insights on commercial energy storage, EV charging infrastructure, solar energy, and smart grid technology.",
+    images: ["/Blog/blogtitle.png"],
+  },
+  alternates: {
+    canonical: "/blog",
+  },
 };
 
 export default function BlogLandingPage() {
   return (
-    <main className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
+    <main className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 mt-10">
       {/* Hero */}
       <section className="py-12 md:py-16 lg:py-20 border-b border-gray-100">
         <LayoutContainer className="text-center max-w-4xl mx-auto px-4">
