@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubs.netlify.app";
   const articleUrl = `${siteUrl}/blog/${slug}`;
   const imageUrl = resource.image.startsWith("http") ? resource.image : `${siteUrl}${resource.image}`;
 

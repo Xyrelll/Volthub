@@ -10,9 +10,47 @@ import MarketInsightsSection from "./components/MarketInsightsSection";
 import SectionHeading from "@/components/marketing/SectionHeading";
 import BackToTopButton from "@/components/common/BackToTopButton";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubs.netlify.app";
+
 export const metadata: Metadata = {
   title: "About Us - VoltHub",
   description: "Learn about VoltHub's mission to build a cleaner energy economy. Discover our history, values, leadership, and commitment to sustainable energy solutions.",
+  keywords: [
+    "about VoltHub",
+    "clean energy company",
+    "energy storage",
+    "EV charging",
+    "solar energy",
+    "renewable energy",
+    "VoltHub mission",
+    "sustainable energy",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: `${siteUrl}/about`,
+    siteName: "VoltHub Energy",
+    title: "About Us - VoltHub",
+    description: "Learn about VoltHub's mission to build a cleaner energy economy. Discover our history, values, leadership, and commitment to sustainable energy solutions.",
+    images: [
+      {
+        url: "/HomeBanner/banner1.png",
+        width: 1200,
+        height: 630,
+        alt: "About VoltHub - Clean Energy Solutions",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Us - VoltHub",
+    description: "Learn about VoltHub's mission to build a cleaner energy economy. Discover our history, values, leadership, and commitment to sustainable energy solutions.",
+    images: ["/HomeBanner/banner1.png"],
+    creator: "@VoltHubEnergy",
+  },
+  alternates: {
+    canonical: `${siteUrl}/about`,
+  },
 };
 
 export default function About() {
