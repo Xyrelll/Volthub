@@ -17,6 +17,9 @@ export async function generateMetadata({
   const { id } = await params;
   const product = getProductById(id);
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubs.netlify.app";
+  const productUrl = `${siteUrl}/products/${id}`;
+
   if (!product) {
     return {
       title: "Product Not Found - VoltHub",
@@ -24,11 +27,55 @@ export async function generateMetadata({
     };
   }
 
+  const productImage = product.image?.startsWith("http") 
+    ? product.image 
+    : product.image?.startsWith("/")
+    ? `${siteUrl}${product.image}`
+    : product.images?.[0]?.startsWith("http")
+    ? product.images[0]
+    : product.images?.[0]?.startsWith("/")
+    ? `${siteUrl}${product.images[0]}`
+    : `${siteUrl}/HomeBanner/banner1.png`;
+
+  const description = product.description ||
+    `Learn more about ${product.name} from VoltHub. ${product.category} energy solution with specifications and pricing.`;
+
   return {
     title: `${product.name} - VoltHub`,
-    description:
-      product.description ||
-      `Learn more about ${product.name} from VoltHub. ${product.category} energy solution with specifications and pricing.`,
+    description,
+    keywords: [
+      product.name.toLowerCase(),
+      product.category,
+      "energy solutions",
+      "VoltHub products",
+      ...(product.tag ? [product.tag.toLowerCase()] : []),
+    ],
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      url: productUrl,
+      siteName: "VoltHub Energy",
+      title: `${product.name} - VoltHub`,
+      description,
+      images: [
+        {
+          url: productImage,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} - VoltHub`,
+      description,
+      images: [productImage],
+      creator: "@VoltHubEnergy",
+    },
+    alternates: {
+      canonical: productUrl,
+    },
   };
 }
 
