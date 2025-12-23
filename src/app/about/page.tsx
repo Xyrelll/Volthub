@@ -10,7 +10,7 @@ import MarketInsightsSection from "./components/MarketInsightsSection";
 import SectionHeading from "@/components/marketing/SectionHeading";
 import BackToTopButton from "@/components/common/BackToTopButton";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubs.netlify.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubsupabase.netlify.app";
 
 export const metadata: Metadata = {
   title: "About Us - VoltHub",
