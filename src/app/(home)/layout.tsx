@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://volthubs.netlify.app";
 
 export const metadata: Metadata = {
   title: "VoltHub - Smart Energy Storage & EV Charging Solutions",
@@ -26,16 +26,16 @@ export const metadata: Metadata = {
     description: "Cut energy costs by up to 40% with VoltHub's next-generation energy storage and EV charging solutions. Commercial and residential solar, battery storage, and smart grid integration.",
     images: [
       {
-        url: `${siteUrl}/logo2.png`,
+        url: "/HomeBanner/banner1.png",
         width: 1200,
         height: 630,
         alt: "VoltHub Energy - Smart Energy Storage & EV Charging Solutions",
       },
       {
-        url: `${siteUrl}/HomeBanner/banner1.png`,
+        url: "/logo2.png",
         width: 1200,
         height: 630,
-        alt: "VoltHub Energy Solutions",
+        alt: "VoltHub Energy Logo",
       },
     ],
   },
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "VoltHub - Smart Energy Storage & EV Charging Solutions",
     description: "Cut energy costs by up to 40% with VoltHub's next-generation energy storage and EV charging solutions.",
-    images: [`${siteUrl}/logo2.png`],
+    images: ["/HomeBanner/banner1.png"],
     creator: "@VoltHubEnergy",
   },
   alternates: {
